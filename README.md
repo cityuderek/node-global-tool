@@ -5,7 +5,7 @@ Tools developed using Node which is for CLI use.
 - CRLF
 - Display current time
 
-## Usage
+## Usage:
 ### CRLF
 Check or set file if it contains LF/CR/CRLF.
 
@@ -34,5 +34,10 @@ Show current date and time
 ngt now
 ```
 
-## Setup
+## Pending features:
+- Split log file by date
+
+## Setup:
+```sh
 npm install -g node-global-tool
+```
