@@ -1,0 +1,33 @@
+{
+  "name": "node-global-tool",
+  "version": "1.0.0",
+  "description": "Node tool for global use",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "node-global-tool": "./bin/index.js",
+    "ngt": "./bin/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cityuderek/node-global-tool.git"
+  },
+  "keywords": [
+    "node"
+  ],
+  "author": "Derek Lam",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cityuderek/node-global-tool/issues"
+  },
+  "homepage": "https://github.com/cityuderek/node-global-tool#readme",
+  "dependencies": {
+    "colors": "^1.4.0",
+    "crlf": "^1.1.1",
+    "lodash": "^4.17.21",
+    "node-fa": "github:cityuderek/node-fa",
+    "yargs": "^16.2.0"
+  }
+}
