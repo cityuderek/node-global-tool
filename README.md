@@ -1,5 +1,6 @@
 <!--
 node ./bin/index.js now
+node ./bin/index.js version
 -->
 
 # node-global-tool
