@@ -28,6 +28,7 @@
     "crlf": "^1.1.1",
     "lodash": "^4.17.21",
     "node-fa": "github:cityuderek/node-fa",
+    "pg": "^8.13.1",
     "yargs": "^16.2.0"
   }
 }
