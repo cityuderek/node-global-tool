@@ -124,6 +124,9 @@ ngt check-memory
 <!--
 ## Pending features:
 
+- test redis
+- test mysql
+- load .env
 - Split log file by date
 
 - dev

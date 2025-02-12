@@ -4,17 +4,28 @@ import { Command, CommanderError } from 'commander';
 import { checkMemory } from '../lib/check-memory.js';
 import { testPg } from '../lib/test-pg.js';
 import { cmdCrlf, rand, randInt } from '../lib/ngt.js';
-import { cmdParseFloat, cmdParseInteger } from '../lib/utils.js';
+import {
+  cmdParseFloat,
+  cmdParseInteger,
+  readEnvFileToJson,
+} from '../lib/utils.js';
+
 const program = new Command();
+import fs from 'fs';
 
 program
   .name('node-global-tool')
   .description('Tools developed using Node which is for CLI use.')
-  .version('1.1.2');
+  .version('1.1.3');
 
-// program.command('tt').action(() => {
-//   console.log('v:');
-// });
+program
+  .command('tt')
+  .argument('<env_file>', 'env_file')
+  .action((envFile) => {
+    console.log(`envFile=${envFile}`);
+    const config = readEnvFileToJson(envFile);
+    console.log(`config`, config);
+  });
 
 program
   .command('check-memory')
@@ -25,7 +36,8 @@ program
   });
 
 program
-  .command('test-pg <postgres_url>')
+  .command('test-pg')
+  .argument('<postgres_url>', 'postgres_url')
   .description('Test postgresql connection string. Server must use SSL.')
   .action((postgresUrl) => {
     // console.log(`test-pg`);

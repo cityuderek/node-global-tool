@@ -2,6 +2,7 @@ import { CommanderError } from 'commander';
 // import { readFile } from 'fs/promises';
 // import { fileURLToPath } from 'url';
 // import path from 'path';
+import * as fs from 'fs';
 
 // // Get the directory name of the current module file
 // const __filename = fileURLToPath(import.meta.url);
@@ -19,6 +20,25 @@ import { CommanderError } from 'commander';
 //     console.error('Error reading package.json:', error);
 //   }
 // }
+export const readEnvFileToJson = (envFilePath: string): any => {
+  const env: any = {};
+  try {
+    const envFileContent = fs.readFileSync(envFilePath, 'utf-8');
+    if (!envFileContent) {
+      return {};
+    }
+    const lines = envFileContent.split('\n');
+
+    lines.forEach((line) => {
+      const [key, value] = line.split('=');
+      if (key && value) {
+        env[key.trim()] = value.trim();
+      }
+    });
+  } catch (err) {}
+
+  return env;
+};
 
 export const split = (str: string, seperator: string, targetLen: number) => {
   let strs = str.split(seperator);
