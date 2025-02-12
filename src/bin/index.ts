@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { Command, CommanderError } from 'commander';
 import { checkMemory } from '../lib/check-memory.js';
 import { testPg } from '../lib/test-pg.js';
@@ -8,7 +10,7 @@ const program = new Command();
 program
   .name('node-global-tool')
   .description('Tools developed using Node which is for CLI use.')
-  .version('1.1.0');
+  .version('1.1.2');
 
 // program.command('tt').action(() => {
 //   console.log('v:');

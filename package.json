@@ -1,6 +1,6 @@
 {
   "name": "node-global-tool",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "Node tool for global use",
   "type": "module",
   "main": "index.js",
@@ -12,8 +12,8 @@
     "start:dev": "ts-node src/bin/index.ts"
   },
   "bin": {
-    "node-global-tool": "./dist/bin/index.js",
-    "ngt": "./dist/bin/index.js"
+    "node-global-tool": "dist/bin/index.js",
+    "ngt": "dist/bin/index.js"
   },
   "repository": {
     "type": "git",
