@@ -1,7 +1,7 @@
 {
-  "name": "@cityuderek/node-global-tool",
-  "version": "1.1.3",
-  "description": "Node tool for global use",
+  "name": "node-global-tool",
+  "version": "1.1.4",
+  "description": "Node tool for global use, also named @cityuderek/node-global-tool",
   "type": "module",
   "main": "index.js",
   "scripts": {
@@ -33,15 +33,19 @@
     "colors": "^1.4.0",
     "commander": "^13.1.0",
     "crlf": "^1.1.1",
+    "dotenv": "^16.4.7",
+    "knex": "^3.1.0",
     "lodash": "^4.17.21",
+    "mysql2": "^3.12.0",
     "node-fa": "github:cityuderek/node-fa",
     "pg": "^8.13.1",
     "url": "^0.11.4",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@types/knex": "^0.16.1",
     "@types/lodash": "^4.17.15",
-    "@types/node": "^22.13.1",
+    "@types/node": "^22.13.4",
     "@types/pg": "^8.11.11",
     "@types/yargs": "^17.0.33",
     "typescript": "^5.7.3"

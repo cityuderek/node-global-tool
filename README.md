@@ -5,7 +5,8 @@ Tools developed using Node which is for CLI use.
 ## Tools:
 
 - [check-memory](#check-memory) Check memory of node v8
-- [test-pg](#test-pg) Test postgresql connection
+- [test-mysql](#test-mysql) Test MySQL connection
+- [test-pg](#test-pg) Test Postgresql connection
 - [now](#now) now Display current time
 - [rand](#rand) rand Generate random float number
 - [rand-int](#rand-int) rand-int Generate random integer number
@@ -41,6 +42,14 @@ Default max-old-space-size: 4144 MB
   "used_global_handles_size": 2592,
   "external_memory": 2021759
 }
+```
+
+### test-mysql
+
+Test MySQL connection string.
+
+```sh
+ngt test-mysql mysql://derek:xxxxxx@localhost/db1
 ```
 
 ### test-pg

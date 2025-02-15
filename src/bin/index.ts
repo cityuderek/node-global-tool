@@ -12,11 +12,12 @@ import {
 
 const program = new Command();
 import fs from 'fs';
+import { testMysql } from '../lib/test-mysql.js';
 
 program
   .name('node-global-tool')
   .description('Tools developed using Node which is for CLI use.')
-  .version('1.1.3');
+  .version('1.1.4');
 
 program
   .command('tt')
@@ -42,6 +43,17 @@ program
   .action((postgresUrl) => {
     // console.log(`test-pg`);
     testPg(postgresUrl);
+  });
+
+program
+  .command('test-mysql')
+  .argument('<mysql_url>', 'mysql_url')
+  .description(
+    'Test MySQL connection string. Server must use SSL. EG mysql://derek:xxxxxx@localhost/db1'
+  )
+  .action(async (mysqlUrl) => {
+    // console.log(`test-mysql`);
+    await testMysql(mysqlUrl);
   });
 
 program
