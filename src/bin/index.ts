@@ -13,19 +13,33 @@ import {
 const program = new Command();
 import fs from 'fs';
 import { testMysql } from '../lib/test-mysql.js';
+import { dsed } from '../lib/dsed.js';
 
 program
   .name('node-global-tool')
   .description('Tools developed using Node which is for CLI use.')
-  .version('1.1.4');
+  .version('1.1.5');
 
 program
   .command('tt')
   .argument('<env_file>', 'env_file')
   .action((envFile) => {
-    console.log(`envFile=${envFile}`);
+    console.log(`tt; envFile=${envFile}`);
     const config = readEnvFileToJson(envFile);
     console.log(`config`, config);
+  });
+
+program
+  .command('dsed')
+  .argument('<search_path>', 'search_path')
+  .argument('[config_file]', 'config_file in tsv', 'dsed.tsv')
+  .action((searchPath, configFilePath) => {
+    console.log(
+      `dsed; searchPath=${searchPath}, configFilePath=${configFilePath}`
+    );
+    dsed(searchPath, configFilePath);
+    // const config = readEnvFileToJson(envFile);
+    // console.log(`config`, config);
   });
 
 program
