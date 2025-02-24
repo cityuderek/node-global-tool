@@ -43,7 +43,7 @@ const replaceInFile = async (
   filePath: string,
   commands: Command[]
 ): Promise<boolean> => {
-  console.log(`replaceInFile: ${filePath}`);
+  // console.log(`replaceInFile: ${filePath}`);
   let hasChange = false;
   try {
     const orgContent = await fs.readFile(filePath, 'utf-8');
