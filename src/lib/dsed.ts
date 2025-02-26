@@ -9,7 +9,7 @@ interface Command {
   type: 'string' | 'regex';
   from: string;
   to: string;
-  flags: string;
+  flags?: string;
 }
 
 const readConfigFile = async (configFilePath: string): Promise<Command[]> => {
@@ -42,38 +42,53 @@ const readConfigFile = async (configFilePath: string): Promise<Command[]> => {
 const replaceInFile = async (
   filePath: string,
   commands: Command[]
-): Promise<boolean> => {
-  // console.log(`replaceInFile: ${filePath}`);
-  let hasChange = false;
+): Promise<number> => {
+  let changedCount = 0;
+
   try {
-    const orgContent = await fs.readFile(filePath, 'utf-8');
-    let content = orgContent;
-    commands.forEach((command) => {
-      let regex: RegExp;
-      if (command.type === 'regex') {
-        regex = new RegExp(command.from, command.flags);
-        // content = content.replace(regex, command.to);
-        content = content.replace(regex, () =>
-          command.to
-            .replace(/\\t/g, '\t')
-            .replace(/\\r/g, '\r')
-            .replace(/\\n/g, '\n')
-        );
-      } else {
-        content = content.replace(command.from, command.to);
-      }
+    const fileStream = fs.createReadStream(filePath, 'utf-8');
+    const rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity,
     });
-    hasChange = content !== orgContent;
-    if (hasChange) {
-      await fs.writeFile(filePath, content, 'utf-8');
+
+    let lines: string[] = [];
+    for await (const line of rl) {
+      let modifiedLine = line;
+      commands.forEach((command) => {
+        let regex: RegExp;
+        if (command.type === 'regex') {
+          regex = new RegExp(command.from, command.flags);
+          if (regex.test(modifiedLine)) {
+            modifiedLine = modifiedLine.replace(regex, () =>
+              command.to
+                .replace(/\\t/g, '\t')
+                .replace(/\\r/g, '\r')
+                .replace(/\\n/g, '\n')
+            );
+            changedCount++;
+          }
+        } else {
+          if (modifiedLine.includes(command.from)) {
+            modifiedLine = modifiedLine.replace(command.from, command.to);
+            changedCount++;
+          }
+        }
+      });
+      lines.push(modifiedLine);
     }
-    // console.log(`Processed file: ${filePath}`);
+
+    rl.close();
+
+    // Write the modified lines back to the file
+    await fs.promises.writeFile(filePath, lines.join('\n'), 'utf-8');
   } catch (error) {
     const errorMessage = (error as Error).message;
     console.error(`Error processing file ${filePath}: ${errorMessage}`);
     throw error;
   }
-  return hasChange;
+
+  return changedCount;
 };
 
 const processFiles = async (
@@ -82,13 +97,17 @@ const processFiles = async (
 ): Promise<number[]> => {
   const searchPath2 = searchPath.replaceAll('\\', '/');
   let totalCount = 0;
-  let updatedCount = 0;
+  let occurenceCount = 0;
+  let updatedFileCount = 0;
   try {
     const files = glob.sync(searchPath2, { nodir: true });
     totalCount = files.length;
     for (const file of files) {
-      if (await replaceInFile(file, commands)) {
-        updatedCount++;
+      const occurenceCount1 = await replaceInFile(file, commands);
+      if (occurenceCount1 > 0) {
+        occurenceCount += occurenceCount1;
+        updatedFileCount++;
+        console.log(`Updated ${file}, occurence count=${occurenceCount}`);
       }
     }
   } catch (error) {
@@ -96,8 +115,10 @@ const processFiles = async (
     console.error(`Error processing files: ${errorMessage}`);
     throw error;
   }
-  console.error(`Total files=${totalCount}, updated files=${updatedCount}`);
-  return [totalCount, updatedCount];
+  console.log(
+    `Total files=${totalCount}, updated files=${updatedFileCount}, occurence count=${occurenceCount}`
+  );
+  return [totalCount, updatedFileCount];
 };
 
 export const dsed = async (

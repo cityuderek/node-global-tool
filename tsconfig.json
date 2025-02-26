@@ -5,8 +5,9 @@
     "lib": ["esnext"],
     "allowJs": true,
     "strict": true,
-    "esModuleInterop": true,
     "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "./dist",
     "rootDir": "./src"

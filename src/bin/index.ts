@@ -9,11 +9,12 @@ import {
   cmdParseInteger,
   readEnvFileToJson,
 } from '../lib/utils.js';
+import { testMysql } from '../lib/test-mysql.js';
+import { dsed } from '../lib/dsed.js';
+import { LogAnalysis3 } from '../log-analysis/log-analysis3.js';
 
 const program = new Command();
 import fs from 'fs';
-import { testMysql } from '../lib/test-mysql.js';
-import { dsed } from '../lib/dsed.js';
 
 program
   .name('node-global-tool')
@@ -22,11 +23,13 @@ program
 
 program
   .command('tt')
-  .argument('<env_file>', 'env_file')
-  .action((envFile) => {
-    console.log(`tt; envFile=${envFile}`);
-    const config = readEnvFileToJson(envFile);
-    console.log(`config`, config);
+  .argument('[p1]', 'p1')
+  .action((p1) => {
+    console.log(`test p1=${p1}`);
+    LogAnalysis3.test();
+    // console.log(`tt; envFile=${envFile}`);
+    // const config = readEnvFileToJson(envFile);
+    // console.log(`config`, config);
   });
 
 program
