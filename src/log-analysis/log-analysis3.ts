@@ -7,6 +7,7 @@ import CounterHelper from '../helpers/counter-helper.js';
 import { createReadStream, writeFileSync, appendFileSync } from 'fs';
 import { createInterface } from 'readline';
 import { TimeUseHelper } from '../lib/time-use-helper.js';
+import { countOccurrences } from '../lib/utils.js';
 
 type PatternConfig =
   | string
@@ -147,9 +148,14 @@ export class LogAnalysis3 {
             if (patternObject.type === 'string') {
               // TimeUseHelper.start('check_string');
               if (lowerLine.includes(patternObject.pattern as string)) {
-                result.counterHelper.add(patternObject.name);
+                const occurence = countOccurrences(
+                  lowerLine,
+                  patternObject.pattern as string
+                );
+                result.counterHelper.add(patternObject.name, occurence);
                 matchMap[patternObject.name] = true;
               }
+
               // TimeUseHelper.end('check_string');
             } else {
               let cont = !patternObject.preTest;
