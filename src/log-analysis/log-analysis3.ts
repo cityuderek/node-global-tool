@@ -7,7 +7,7 @@ import CounterHelper from '../helpers/counter-helper.js';
 import { createReadStream, writeFileSync, appendFileSync } from 'fs';
 import { createInterface } from 'readline';
 import { TimeUseHelper } from '../lib/time-use-helper.js';
-import { countOccurrences } from '../lib/utils.js';
+import { countOccurrences, formatNumber } from '../lib/utils.js';
 
 type PatternConfig =
   | string
@@ -196,7 +196,14 @@ export class LogAnalysis3 {
 
       result.lineCnt++;
     }
-    // console.log(`checkCount=${checkCount}, skipCount=${skipCount}`);
+    if (skipCount > 0) {
+      const prec = Math.floor((100 * skipCount) / (skipCount + checkCount));
+      console.log(
+        `checkCount=${formatNumber(checkCount)}, skipCount=${formatNumber(
+          skipCount
+        )}, saved ${prec}%`
+      );
+    }
 
     // console.log(
     //   `startPattern=${startPattern}, endPattern=${endPattern}, startAna=${startAna}, endAna=${endAna}`
