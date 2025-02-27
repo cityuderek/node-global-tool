@@ -24,7 +24,7 @@ program
 program
   .command('tt')
   .argument('[p1]', 'p1')
-  .action((p1) => {
+  .action((p1: string = '') => {
     console.log(`test p1=${p1}`);
     LogAnalysis3.test();
     // console.log(`tt; envFile=${envFile}`);
