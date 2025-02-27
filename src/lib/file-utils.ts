@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 
-const readFileSyncJson = <T = any>(filePath: string): T => {
+export const readFileSyncJson = <T = any>(filePath: string): T => {
   try {
     const fileContent = fs.readFileSync(filePath, 'utf-8');
     const jsonData = JSON.parse(fileContent);
@@ -11,4 +11,13 @@ const readFileSyncJson = <T = any>(filePath: string): T => {
   }
 };
 
-export default readFileSyncJson;
+export const getFileName = (
+  filePath: string,
+  withExt: boolean = true
+): string => {
+  const fileName = filePath.replace(/^.*[\\/]/, '');
+  if (withExt) {
+    return fileName;
+  }
+  return filePath.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, '');
+};

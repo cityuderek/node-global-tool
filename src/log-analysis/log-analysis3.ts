@@ -2,7 +2,7 @@
 // const fs = require('fs');
 // const CounterHelper = require('../helpers/counterHelper');
 
-import readFileSyncJson from '../lib/file-utils.js';
+import { getFileName, readFileSyncJson } from '../lib/file-utils.js';
 import CounterHelper from '../helpers/counter-helper.js';
 import { createReadStream, writeFileSync, appendFileSync } from 'fs';
 import { createInterface } from 'readline';
@@ -54,6 +54,11 @@ type AnaCountResult = {
   counterHelper: CounterHelper;
 };
 
+type CombinedResult = {
+  header: string;
+  lines: string[];
+};
+
 export class LogAnalysis3 {
   filepaths: string[] = [];
   task: AnaCountTask = {
@@ -82,14 +87,24 @@ export class LogAnalysis3 {
         task.patternObjects ? task.patternObjects.length : 0
       }, startPattern=${task.startPattern}, endPattern=${task.endPattern}`
     );
+    console.time('runTasks');
     this.clearResultFile();
+    let combinedResult = null;
     for (const filepath of this.filepaths) {
       console.time('runTask');
       const result = await this.anaCount(this.task, filepath);
       console.timeEnd('runTask');
       this.showResult(this.task, filepath, result);
-      this.saveResult(this.task, filepath, result);
+      // this.saveResult(this.task, filepath, result);
+      combinedResult = this.addResultToCombinedResult(
+        this.task,
+        filepath,
+        result,
+        combinedResult
+      );
     }
+    this.saveCombinedResult(combinedResult as CombinedResult);
+    console.timeEnd('runTasks');
     // TimeUseHelper.show();
   }
 
@@ -209,6 +224,18 @@ export class LogAnalysis3 {
     console.log(str);
   }
 
+  saveCombinedResult(result: CombinedResult): void {
+    const filePath = `logana-combined-output.txt`;
+    let str = result.header + '\n';
+    for (const line of result.lines) {
+      str += line + '\n';
+    }
+    str += '\n\n';
+    writeFileSync(filePath, str);
+    // const filename = filepath.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, '');
+    // writeFileSync(`output-${filename}.txt`, str);
+  }
+
   saveResult(
     task: AnaCountTask,
     filepath: string,
@@ -233,6 +260,47 @@ export class LogAnalysis3 {
   ): void {
     const str = this.resultToString(task, filepath, result);
     console.log(str);
+  }
+
+  addResultToCombinedResult(
+    task: AnaCountTask,
+    filepath: string,
+    result: AnaCountResult,
+    orgResult: CombinedResult | null = null
+  ): CombinedResult {
+    let combinedResult = orgResult;
+
+    if (!combinedResult) {
+      combinedResult = {
+        header: '',
+        lines: [],
+      };
+      let header = 'Result\n';
+      if (task.startPattern) {
+        header += `startPattern\t'${task.startPattern}'\nendPattern\t'${task.endPattern}'\n`;
+      }
+      combinedResult.header = header;
+
+      combinedResult.lines.push('file');
+      combinedResult.lines.push('lineCnt');
+      combinedResult.lines.push('anaLineCnt');
+      for (const pattern of result.patterns) {
+        combinedResult.lines.push(`${pattern}`);
+      }
+    }
+    const fileName = getFileName(filepath, false);
+    combinedResult.lines[0] += `\t${fileName}`;
+    combinedResult.lines[1] += `\t${result.lineCnt}`;
+    combinedResult.lines[2] += `\t${result.anaLineCnt}`;
+    let i = 3;
+    for (const pattern of result.patterns) {
+      combinedResult.lines[i] += `\t${result.counterHelper.getCounter(
+        pattern
+      )}`;
+      i++;
+    }
+
+    return combinedResult;
   }
 
   resultToString(

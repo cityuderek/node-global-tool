@@ -4,6 +4,11 @@ import { CommanderError } from 'commander';
 // import path from 'path';
 import * as fs from 'fs';
 
+export const countOccurrences = (str: string, subStr: string): number => {
+  // Split the string by the substring and return the length of the resulting array minus one
+  return str.split(subStr).length - 1;
+};
+
 export const msToDisplayString = (n: number): string => {
   if (n >= 1000) {
     return (n / 1000).toFixed(1) + 's';
