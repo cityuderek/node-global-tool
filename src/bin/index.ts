@@ -33,9 +33,25 @@ program
   });
 
 program
+  .command('log-analysis')
+  .argument(
+    '[config_file_path]',
+    'config_file_path, default logana.json',
+    'logana.json'
+  )
+  .action(async (configFilePath: string) => {
+    console.log(`log-analysis configFilePath=${configFilePath}`);
+    const instance = new LogAnalysis3();
+    await instance.exec(configFilePath);
+    // console.log(`tt; envFile=${envFile}`);
+    // const config = readEnvFileToJson(envFile);
+    // console.log(`config`, config);
+  });
+
+program
   .command('dsed')
   .argument('<search_path>', 'search_path')
-  .argument('[config_file]', 'config_file in tsv', 'dsed.tsv')
+  .argument('[config_file]', 'config_file in tsv, default dsed.tsv', 'dsed.tsv')
   .action((searchPath, configFilePath) => {
     console.log(
       `dsed; searchPath=${searchPath}, configFilePath=${configFilePath}`
