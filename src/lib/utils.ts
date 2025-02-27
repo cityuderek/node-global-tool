@@ -4,6 +4,16 @@ import { CommanderError } from 'commander';
 // import path from 'path';
 import * as fs from 'fs';
 
+export const msToDisplayString = (n: number): string => {
+  if (n >= 1000) {
+    return (n / 1000).toFixed(1) + 's';
+  } else if (n >= 1) {
+    return n.toFixed(1) + 'ms';
+  } else {
+    return (n * 1000).toFixed(1) + 'µs';
+  }
+};
+
 // // Get the directory name of the current module file
 // const __filename = fileURLToPath(import.meta.url);
 // const __dirname = path.dirname(__filename);

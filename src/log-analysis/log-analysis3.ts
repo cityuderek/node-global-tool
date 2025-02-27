@@ -6,12 +6,16 @@ import readFileSyncJson from '../lib/file-utils.js';
 import CounterHelper from '../helpers/counter-helper.js';
 import { createReadStream, writeFileSync, appendFileSync } from 'fs';
 import { createInterface } from 'readline';
+import { TimeUseHelper } from '../lib/time-use-helper.js';
 
 type PatternConfig =
   | string
   | {
       name: string;
-      regStr: string;
+      pattern?: string;
+      depends?: string;
+      preTest?: string;
+      regStr?: string;
       default?: string;
       valueMap?: { [key in string]: number };
       op?: '<=';
@@ -29,6 +33,8 @@ type PatternObject = {
   type: 'string' | 'regex' | 'regex_fn';
   name: string;
   pattern: RegExp | string;
+  depends?: string;
+  preTest?: string;
   op?: '<=';
   default?: string;
   // values?: [{ [key in string]: number }];
@@ -84,6 +90,7 @@ export class LogAnalysis3 {
       this.showResult(this.task, filepath, result);
       this.saveResult(this.task, filepath, result);
     }
+    // TimeUseHelper.show();
   }
 
   async anaCount(
@@ -94,6 +101,8 @@ export class LogAnalysis3 {
     const patternObjects = task.patternObjects;
     const startPattern = task?.startPattern;
     const endPattern = task?.endPattern;
+    let skipCount = 0;
+    let checkCount = 0;
 
     // console.log(`filepath=${filepath}`);
     // console.log(
@@ -115,30 +124,45 @@ export class LogAnalysis3 {
     let endAna = false;
     for await (const line of lineReader) {
       const lowerLine = line.toLowerCase();
+      const matchMap: { [key: string]: boolean } = {};
 
       if (startAna && !endAna) {
         for (const patternObject of patternObjects) {
-          if (patternObject.type === 'string') {
-            if (lowerLine.includes(patternObject.pattern as string)) {
-              result.counterHelper.add(patternObject.name);
-            }
-          } else {
-            const regExp = patternObject.pattern as RegExp;
-            const match = line.match(regExp);
-            if (match) {
-              result.counterHelper.add(patternObject.name);
-              //// handle valueMap
-              if (patternObject.type === 'regex_fn') {
-                const n = parseInt(match[1], 10);
-                // if (0 <= n && n <= 120000) {
-                // } else {
-                //   console.log(`special ${n} `, match);
-                //   //match[1], ${match[1]}, line=${line}
-                // }
-                let groupName = getFnPatternName(patternObject, n);
-                result.counterHelper.add(groupName);
+          if (!patternObject.depends || patternObject.depends in matchMap) {
+            if (patternObject.type === 'string') {
+              // TimeUseHelper.start('check_string');
+              if (lowerLine.includes(patternObject.pattern as string)) {
+                result.counterHelper.add(patternObject.name);
+                matchMap[patternObject.name] = true;
+              }
+              // TimeUseHelper.end('check_string');
+            } else {
+              let cont = !patternObject.preTest;
+              if (patternObject.preTest) {
+                cont = line.includes(patternObject.preTest);
+              }
+              if (cont) {
+                // TimeUseHelper.start('check_regex');
+                const regExp = patternObject.pattern as RegExp;
+                const match = line.match(regExp);
+                if (match) {
+                  if (!(patternObject.name in matchMap)) {
+                    result.counterHelper.add(patternObject.name);
+                    matchMap[patternObject.name] = true;
+                  }
+                  //// handle valueMap
+                  if (patternObject.type === 'regex_fn') {
+                    const n = parseInt(match[1], 10);
+                    let groupName = getFnPatternName(patternObject, n);
+                    result.counterHelper.add(groupName);
+                  }
+                }
               }
             }
+            // TimeUseHelper.end('check_regex');
+            checkCount++;
+          } else {
+            skipCount++;
           }
         }
         if (endPattern && line.includes(endPattern)) {
@@ -151,6 +175,7 @@ export class LogAnalysis3 {
 
       result.lineCnt++;
     }
+    // console.log(`checkCount=${checkCount}, skipCount=${skipCount}`);
 
     // console.log(
     //   `startPattern=${startPattern}, endPattern=${endPattern}, startAna=${startAna}, endAna=${endAna}`
@@ -171,13 +196,14 @@ export class LogAnalysis3 {
       str += `pattern name\t${result.patterns.length}\n`;
     }
     for (const patternObject of patternObjects) {
-      if (patternObject.type === 'string') {
-        str += `${patternObject.name}\tstring\t${patternObject.pattern}\n`;
-      } else if (patternObject.type === 'regex') {
-        str += `${patternObject.name}\tregex\t${patternObject.pattern}\n`;
-      } else if (patternObject.type === 'regex_fn') {
-        str += `${patternObject.name}\tregex_fn\t${patternObject.pattern}\n`;
-      }
+      str += `name=${patternObject.name}, type=${patternObject.type}, pattern=${patternObject.pattern}, depends=${patternObject.preTest}, depends=${patternObject.preTest}\n`;
+      // if (patternObject.type === 'string') {
+      //   str += `${patternObject.name}\tstring\t${patternObject.pattern}\n`;
+      // } else if (patternObject.type === 'regex') {
+      //   str += `${patternObject.name}\tregex\t${patternObject.pattern}\n`;
+      // } else if (patternObject.type === 'regex_fn') {
+      //   str += `${patternObject.name}\tregex_fn\t${patternObject.pattern}\n`;
+      // }
     }
     str += '\n\n';
     console.log(str);
@@ -225,6 +251,7 @@ export class LogAnalysis3 {
     for (const pattern of result.patterns) {
       str += `${pattern}\t${result.counterHelper.getCounter(pattern)}\n`;
     }
+    str += '\n\n';
     return str;
   }
 
@@ -256,7 +283,7 @@ export class LogAnalysis3 {
     console.log(
       `files=${this.filepaths.length}, patterns=${this.task.patternObjects.length}`
     );
-    this.showPatterns(this.task.patternObjects, null);
+    // this.showPatterns(this.task.patternObjects, null);
     // console.log(this.config);
   }
 }
@@ -279,17 +306,15 @@ const getFnPatternName = (patternObject: PatternObject, n: number): string => {
 const newAnaCountResult = (task: AnaCountTask): AnaCountResult => {
   const patterns: string[] = [];
   for (const patternObject of task.patternObjects) {
-    if (patternObject.type === 'string') {
-      patterns.push(patternObject.pattern as string);
-    } else {
-      patterns.push(patternObject.name);
-      if (patternObject.type === 'regex_fn') {
-        const valueMap = patternObject.valueMap as { [x: string]: number };
-        for (const key of Object.keys(valueMap)) {
-          patterns.push(`${patternObject.name}_${key}`);
-        }
-        patterns.push(`${patternObject.name}_${patternObject.default}`);
+    patterns.push(patternObject.name as string);
+    // if (patternObject.type !== 'string') {
+    // }
+    if (patternObject.type === 'regex_fn') {
+      const valueMap = patternObject.valueMap as { [x: string]: number };
+      for (const key of Object.keys(valueMap)) {
+        patterns.push(`${patternObject.name}_${key}`);
       }
+      patterns.push(`${patternObject.name}_${patternObject.default}`);
     }
   }
 
@@ -301,27 +326,36 @@ const newAnaCountResult = (task: AnaCountTask): AnaCountResult => {
   };
 };
 
-const createPatternObject = (pattern: PatternConfig): PatternObject => {
+const createPatternObject = (patternConfig: PatternConfig): PatternObject => {
   const obj: PatternObject = {
     type: 'string',
     name: '',
     pattern: new RegExp(''),
+    depends: '',
   };
 
   // PatternObject
-  if (typeof pattern === 'string') {
-    obj.name = pattern;
-    obj.pattern = pattern.toLowerCase();
+  if (typeof patternConfig === 'string') {
+    obj.name = patternConfig;
+    obj.pattern = patternConfig.toLowerCase();
+    ////
+  } else if ('pattern' in patternConfig) {
+    obj.name = patternConfig.pattern as string;
+    obj.depends = patternConfig.depends ?? '';
+    obj.pattern = obj.name.toLowerCase();
+    ////
   } else {
-    obj.name = pattern.name;
-    obj.pattern = new RegExp(pattern.regStr);
-    obj.op = pattern.op;
-    if (!('valueMap' in pattern)) {
+    obj.name = patternConfig.name;
+    obj.depends = patternConfig.depends ?? '';
+    obj.preTest = patternConfig.preTest ?? '';
+    obj.pattern = new RegExp(patternConfig.regStr ?? '');
+    obj.op = patternConfig.op;
+    if (!('valueMap' in patternConfig)) {
       obj.type = 'regex';
     } else {
       obj.type = 'regex_fn';
-      obj.default = pattern.default;
-      obj.valueMap = pattern.valueMap;
+      obj.default = patternConfig.default;
+      obj.valueMap = patternConfig.valueMap;
       // obj.values = [];
       // for (const key of Object.keys(pattern.valueMap)) {
       // }
