@@ -239,11 +239,11 @@ export class LogAnalysis3 {
 
   saveCombinedResult(result: CombinedResult): void {
     const filePath = `logana-combined-output.txt`;
-    let str = result.header + '\n';
+    let str = result.header;
     for (const line of result.lines) {
       str += line + '\n';
     }
-    str += '\n\n';
+    // str += '\n\n';
     writeFileSync(filePath, str);
     // const filename = filepath.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, '');
     // writeFileSync(`output-${filename}.txt`, str);
@@ -288,7 +288,7 @@ export class LogAnalysis3 {
         header: '',
         lines: [],
       };
-      let header = 'Result\n';
+      let header = '';
       if (task.startPattern) {
         header += `startPattern\t'${task.startPattern}'\nendPattern\t'${task.endPattern}'\n`;
       }
