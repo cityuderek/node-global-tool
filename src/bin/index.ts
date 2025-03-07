@@ -19,7 +19,7 @@ import fs from 'fs';
 program
   .name('node-global-tool')
   .description('Tools developed using Node which is for CLI use.')
-  .version('1.1.5');
+  .version('1.1.6');
 
 program
   .command('tt')

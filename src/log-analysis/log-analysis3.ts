@@ -19,6 +19,7 @@ type PatternConfig =
       regStr?: string;
       default?: string;
       valueMap?: { [key in string]: number };
+      type?: 'string' | 'regex' | 'regex_fn';
       op?: '<=';
     };
 
@@ -88,22 +89,20 @@ export class LogAnalysis3 {
         task.patternObjects ? task.patternObjects.length : 0
       }, startPattern=${task.startPattern}, endPattern=${task.endPattern}`
     );
+    // console.log('patternObjects', task.patternObjects);
     console.time('runTasks');
     this.clearResultFile();
-    let combinedResult = null;
+    const results: { filepath: string; result: AnaCountResult }[] = [];
     for (const filepath of this.filepaths) {
       console.time('runTask');
       const result = await this.anaCount(this.task, filepath);
       console.timeEnd('runTask');
       this.showResult(this.task, filepath, result);
       // this.saveResult(this.task, filepath, result);
-      combinedResult = this.addResultToCombinedResult(
-        this.task,
-        filepath,
-        result,
-        combinedResult
-      );
+      results.push({ filepath, result });
     }
+
+    const combinedResult = this.combineResults(this.task, results);
     this.saveCombinedResult(combinedResult as CombinedResult);
     console.timeEnd('runTasks');
     // TimeUseHelper.show();
@@ -173,9 +172,20 @@ export class LogAnalysis3 {
                   }
                   //// handle valueMap
                   if (patternObject.type === 'regex_fn') {
-                    const n = parseInt(match[1], 10);
-                    let groupName = getFnPatternName(patternObject, n);
+                    const value = match.slice(1).join('');
+                    // console.log(`match.value=`, value);
+                    const n = parseInt(value, 10);
+                    // console.log(`match.value=${value}, n=${n}`);
+                    let groupName = patternObject.default
+                      ? getFnPatternName(patternObject, n)
+                      : `${patternObject.name}_${value}`;
                     result.counterHelper.add(groupName);
+                    if (!result.patterns.includes(groupName)) {
+                      // console.log(
+                      //   `groupName=${groupName} result.patterns.length=${result.patterns.length}`
+                      // );
+                      result.patterns.push(groupName);
+                    }
                   }
                 }
               }
@@ -275,6 +285,53 @@ export class LogAnalysis3 {
     console.log(str);
   }
 
+  combineResults(
+    task: AnaCountTask,
+    results: { filepath: string; result: AnaCountResult }[]
+  ): CombinedResult {
+    // Initialize CombinedResult
+    let combinedResult: CombinedResult = {
+      header: '',
+      lines: [],
+    };
+
+    // Combine all patterns from results into a single array
+    const allPatterns = Array.from(
+      new Set(results.flatMap(({ result }) => result.patterns))
+    ).sort();
+
+    // Set up header based on the task
+    let header = '';
+    if (task.startPattern) {
+      header += `startPattern\t'${task.startPattern}'\nendPattern\t'${task.endPattern}'\n`;
+    }
+    combinedResult.header = header;
+
+    // Add the initial lines (headers for the results table)
+    combinedResult.lines.push('file');
+    combinedResult.lines.push('lineCnt');
+    combinedResult.lines.push('anaLineCnt');
+    for (const pattern of allPatterns) {
+      combinedResult.lines.push(`${pattern}`);
+    }
+
+    // Process each result and populate lines
+    for (const { filepath, result } of results) {
+      const fileName = getFileName(filepath, false);
+      combinedResult.lines[0] += `\t${fileName}`;
+      combinedResult.lines[1] += `\t${result.lineCnt}`;
+      combinedResult.lines[2] += `\t${result.anaLineCnt}`;
+      let i = 3;
+      for (const pattern of allPatterns) {
+        const count = result.counterHelper.getCounter(pattern) || 0; // Default to 0 if pattern doesn't exist
+        combinedResult.lines[i] += `\t${count}`;
+        i++;
+      }
+    }
+
+    return combinedResult;
+  }
+
   addResultToCombinedResult(
     task: AnaCountTask,
     filepath: string,
@@ -370,13 +427,16 @@ export class LogAnalysis3 {
 }
 
 const getFnPatternName = (patternObject: PatternObject, n: number): string => {
-  let group = patternObject.default;
-  if (patternObject.valueMap) {
-    for (const key of Object.keys(patternObject.valueMap)) {
-      const boundary = patternObject.valueMap[key];
-      if (n <= boundary) {
-        group = key;
-        break;
+  let group = n + '';
+  if ('default' in patternObject && patternObject.default) {
+    group = patternObject.default as string;
+    if (patternObject.valueMap) {
+      for (const key of Object.keys(patternObject.valueMap)) {
+        const boundary = patternObject.valueMap[key];
+        if (n <= boundary) {
+          group = key;
+          break;
+        }
       }
     }
   }
@@ -391,11 +451,15 @@ const newAnaCountResult = (task: AnaCountTask): AnaCountResult => {
     // if (patternObject.type !== 'string') {
     // }
     if (patternObject.type === 'regex_fn') {
-      const valueMap = patternObject.valueMap as { [x: string]: number };
-      for (const key of Object.keys(valueMap)) {
-        patterns.push(`${patternObject.name}_${key}`);
+      if ('valueMap' in patternObject && patternObject.valueMap) {
+        const valueMap = patternObject.valueMap as { [x: string]: number };
+        for (const key of Object.keys(valueMap)) {
+          patterns.push(`${patternObject.name}_${key}`);
+        }
       }
-      patterns.push(`${patternObject.name}_${patternObject.default}`);
+      if ('default' in patternObject && patternObject.default) {
+        patterns.push(`${patternObject.name}_${patternObject.default}`);
+      }
     }
   }
 
@@ -431,15 +495,15 @@ const createPatternObject = (patternConfig: PatternConfig): PatternObject => {
     obj.preTest = patternConfig.preTest ?? '';
     obj.pattern = new RegExp(patternConfig.regStr ?? '');
     obj.op = patternConfig.op;
-    if (!('valueMap' in patternConfig)) {
-      obj.type = 'regex';
-    } else {
+    if ('valueMap' in patternConfig || patternConfig.type === 'regex_fn') {
       obj.type = 'regex_fn';
       obj.default = patternConfig.default;
       obj.valueMap = patternConfig.valueMap;
       // obj.values = [];
       // for (const key of Object.keys(pattern.valueMap)) {
       // }
+    } else {
+      obj.type = 'regex';
     }
   }
 
